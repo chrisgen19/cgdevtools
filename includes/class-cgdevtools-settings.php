@@ -43,15 +43,6 @@ class CGDevTools_Settings {
 
         add_submenu_page(
             'cgdevtools',
-            __('Production Ready', 'cgdevtools'),
-            __('Production Ready', 'cgdevtools'),
-            'manage_options',
-            'cgdevtools-production',
-            [$this, 'render_production']
-        );
-
-        add_submenu_page(
-            'cgdevtools',
             __('Intercepted Emails', 'cgdevtools'),
             __('Emails', 'cgdevtools'),
             'manage_options',
@@ -101,10 +92,6 @@ class CGDevTools_Settings {
 
     public function render_settings(): void {
         include CGDEVTOOLS_PLUGIN_DIR . 'templates/admin-settings.php';
-    }
-
-    public function render_production(): void {
-        include CGDEVTOOLS_PLUGIN_DIR . 'templates/admin-production.php';
     }
 
     public function render_emails(): void {

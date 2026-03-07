@@ -52,17 +52,17 @@ class CGDevTools_Admin_Bar {
         ]);
 
         $admin_bar->add_node([
-            'id'     => 'cgdevtools-dashboard',
+            'id'     => 'cgdevtools-staging',
             'parent' => 'cgdevtools',
-            'title'  => __('Staging Dashboard', 'cgdevtools'),
-            'href'   => admin_url('admin.php?page=cgdevtools'),
+            'title'  => __('Staging Scan', 'cgdevtools'),
+            'href'   => admin_url('admin.php?page=cgdevtools&tab=staging'),
         ]);
 
         $admin_bar->add_node([
             'id'     => 'cgdevtools-production',
             'parent' => 'cgdevtools',
-            'title'  => __('Production Ready', 'cgdevtools'),
-            'href'   => admin_url('admin.php?page=cgdevtools-production'),
+            'title'  => __('Production Scan', 'cgdevtools'),
+            'href'   => admin_url('admin.php?page=cgdevtools&tab=production'),
         ]);
 
         $admin_bar->add_node([
