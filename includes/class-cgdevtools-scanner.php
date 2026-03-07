@@ -65,9 +65,17 @@ class CGDevTools_Scanner {
             'timestamp' => current_time('mysql'),
         ]);
 
+        // Also refresh the production scan since staging fixes affect it
+        $prod_results = $this->run_production_scan();
+        update_option('cgdevtools_last_production_scan', [
+            'results'   => $prod_results,
+            'timestamp' => current_time('mysql'),
+        ]);
+
         wp_send_json_success([
-            'fixed'   => $fixed,
-            'results' => $new_results,
+            'fixed'            => $fixed,
+            'results'          => $new_results,
+            'production_results' => $prod_results,
         ]);
     }
 
@@ -127,9 +135,17 @@ class CGDevTools_Scanner {
             'timestamp' => current_time('mysql'),
         ]);
 
+        // Also refresh the staging scan since production fixes affect it
+        $staging_results = $this->run_scan();
+        update_option('cgdevtools_last_scan', [
+            'results'   => $staging_results,
+            'timestamp' => current_time('mysql'),
+        ]);
+
         wp_send_json_success([
-            'fixed'   => $fixed,
-            'results' => $new_results,
+            'fixed'           => $fixed,
+            'results'         => $new_results,
+            'staging_results' => $staging_results,
         ]);
     }
 

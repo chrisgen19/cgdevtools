@@ -147,6 +147,9 @@
             $btn.prop('disabled', false).html('<span class="dashicons dashicons-admin-generic"></span> Fix All Issues');
             if (res.success) {
                 renderResults(res.data.results);
+                if (res.data.production_results) {
+                    renderProductionResults(res.data.production_results);
+                }
                 showToast('All available fixes applied!');
             } else {
                 showToast(cgdevtools.strings.error, 'error');
@@ -167,8 +170,9 @@
         }, function (res) {
             if (res.success && res.data.success) {
                 showToast(res.data.message);
-                // Re-run scan to update
+                // Re-run both scans to update
                 $('#cgdevtools-run-scan').trigger('click');
+                $('#cgdevtools-run-production-scan').trigger('click');
             } else {
                 $btn.prop('disabled', false).text('Fix');
                 showToast(res.data?.message || cgdevtools.strings.error, 'error');
@@ -376,6 +380,9 @@
             $btn.prop('disabled', false).html('<span class="dashicons dashicons-admin-generic"></span> Fix All Issues');
             if (res.success) {
                 renderProductionResults(res.data.results);
+                if (res.data.staging_results) {
+                    renderResults(res.data.staging_results);
+                }
                 showToast('All staging restrictions removed!');
             } else {
                 showToast(cgdevtools.strings.error, 'error');
@@ -396,7 +403,9 @@
         }, function (res) {
             if (res.success && res.data.success) {
                 showToast(res.data.message);
+                // Re-run both scans to update
                 $('#cgdevtools-run-production-scan').trigger('click');
+                $('#cgdevtools-run-scan').trigger('click');
             } else {
                 $btn.prop('disabled', false).text('Fix');
                 showToast(res.data?.message || cgdevtools.strings.error, 'error');
