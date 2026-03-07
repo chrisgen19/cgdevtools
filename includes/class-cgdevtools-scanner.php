@@ -444,6 +444,7 @@ class CGDevTools_Scanner {
             $this->check_sitemap(),
             $this->check_password_protection(),
             $this->check_email_interception(),
+            $this->check_environment_badge(),
         ];
     }
 
@@ -775,6 +776,32 @@ class CGDevTools_Scanner {
         ];
     }
 
+    private function check_environment_badge(): array {
+        $settings = get_option('cgdevtools_environment', []);
+        $badge = !empty($settings['badge_enabled']);
+        $banner = !empty($settings['banner_enabled']);
+        $both_on = $badge && $banner;
+
+        $parts = [];
+        if (!$badge) $parts[] = 'badge';
+        if (!$banner) $parts[] = 'admin banner';
+
+        return [
+            'id'          => 'environment_badge',
+            'label'       => 'Environment Badge & Banner',
+            'description' => $both_on
+                ? 'Environment badge and admin banner are active.'
+                : ($badge || $banner
+                    ? 'Environment ' . implode(' and ', $parts) . ' not enabled. Both should be active on staging.'
+                    : 'Environment badge and admin banner are not enabled. Should be active on staging.'),
+            'status'      => $both_on ? 'pass' : 'fail',
+            'fixable'     => !$both_on,
+            'link'        => !$both_on ? admin_url('admin.php?page=cgdevtools-settings#environment') : '',
+            'link_label'  => 'Settings',
+            'category'    => 'configuration',
+        ];
+    }
+
     /**
      * Apply an automatic fix for a given check.
      */
@@ -787,6 +814,7 @@ class CGDevTools_Scanner {
             'sitemap'                  => $this->fix_sitemap(),
             'password_protection'      => $this->fix_password_protection(),
             'email_interception'       => $this->fix_email_interception(),
+            'environment_badge'        => $this->fix_environment_badge(),
             default                    => ['success' => false, 'message' => 'No auto-fix available for this check.'],
         };
     }
@@ -829,5 +857,13 @@ class CGDevTools_Scanner {
     private function fix_email_interception(): array {
         update_option('cgdevtools_email_interception', ['enabled' => true]);
         return ['success' => true, 'message' => 'Email interception is now active. All outgoing emails will be logged.'];
+    }
+
+    private function fix_environment_badge(): array {
+        $settings = get_option('cgdevtools_environment', []);
+        $settings['badge_enabled'] = true;
+        $settings['banner_enabled'] = true;
+        update_option('cgdevtools_environment', $settings);
+        return ['success' => true, 'message' => 'Environment badge and admin banner have been enabled.'];
     }
 }
