@@ -5,7 +5,7 @@ WordPress plugin for managing development and staging environments. Scans your s
 ## Features
 
 ### Staging Readiness Scanner
-Checks your site against 13 staging best practices:
+Checks your site against 19 staging best practices:
 
 | Check | Auto-Fixable |
 |---|---|
@@ -16,15 +16,21 @@ Checks your site against 13 staging best practices:
 | WordPress sitemap disabled | Yes |
 | Password protection enabled | Yes |
 | Email interception enabled | Yes |
+| Environment badge & banner enabled | Yes |
+| DISALLOW_FILE_EDIT enabled | Yes (edits wp-config.php) |
 | WP_DEBUG enabled | No |
 | SSL/HTTPS | No |
 | Caching plugins detected | No |
 | Auto-updates disabled | No |
 | Admin email is dev/staging | No |
 | Analytics/tracking scripts detected | No |
+| PHP version (8.1+ recommended) | No |
+| Payment gateway in live mode | No |
+| Risky WP Cron events active | No |
+| Inactive plugins detected | No |
 
 ### Production Ready Scanner
-Reverse checklist — verifies all staging restrictions are removed before going live:
+Reverse checklist — verifies all staging restrictions are removed and the site is hardened for production:
 
 | Check | Auto-Fixable |
 |---|---|
@@ -36,9 +42,17 @@ Reverse checklist — verifies all staging restrictions are removed before going
 | Password protection disabled | Yes |
 | Email interception disabled | Yes |
 | Environment badge & banner disabled | Yes |
+| DISALLOW_FILE_EDIT enabled | Yes (edits wp-config.php) |
+| WP_DEBUG_DISPLAY disabled | Yes (edits wp-config.php) |
 | SSL/HTTPS enforced | No |
 | WP_DEBUG disabled | No |
 | Caching plugin active | No |
+| PHP version (8.1+ required) | No |
+| Database table prefix (non-default) | No |
+| Default "admin" username removed | No |
+| Permalink structure (not Plain) | No |
+| Site icon / favicon set | No |
+| Pending WordPress/plugin/theme updates | No |
 | CGDevTools plugin deactivated | No |
 
 ### One-Click Fix All
@@ -151,11 +165,12 @@ cgdevtools/
 │       └── admin.js
 └── templates/
     ├── admin-dashboard.php
-    ├── admin-production.php
     ├── admin-settings.php
     ├── admin-emails.php
     ├── lock-screen.php
-    └── pdf-report.php
+    ├── pdf-report.php
+    └── partials/
+        └── scan-table.php
 ```
 
 ## Database
