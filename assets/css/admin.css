@@ -365,6 +365,101 @@
     text-align: right;
 }
 
+/* Confirm Dialog */
+.cgdevtools-confirm-dialog {
+    position: relative;
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px;
+    width: 90%;
+    max-width: 420px;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: cgdevtools-confirm-in 0.2s ease;
+}
+
+@keyframes cgdevtools-confirm-in {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.cgdevtools-confirm-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+}
+
+.cgdevtools-confirm-icon-warning {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.cgdevtools-confirm-icon-danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.cgdevtools-confirm-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 8px;
+}
+
+.cgdevtools-confirm-message {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0 0 24px;
+    line-height: 1.5;
+}
+
+.cgdevtools-confirm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.cgdevtools-confirm-btn {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.cgdevtools-confirm-btn-cancel {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.cgdevtools-confirm-btn-cancel:hover {
+    background: #e2e8f0;
+}
+
+.cgdevtools-confirm-btn-primary {
+    background: #2563eb;
+    color: #fff;
+}
+
+.cgdevtools-confirm-btn-primary:hover {
+    background: #1d4ed8;
+}
+
+.cgdevtools-confirm-btn-danger {
+    background: #dc2626;
+    color: #fff;
+}
+
+.cgdevtools-confirm-btn-danger:hover {
+    background: #b91c1c;
+}
+
 /* Admin Bar Badge */
 #wp-admin-bar-cgdevtools .cgdevtools-bar-badge {
     display: inline-block;

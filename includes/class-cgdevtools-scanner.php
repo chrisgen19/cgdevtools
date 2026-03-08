@@ -168,7 +168,15 @@ class CGDevTools_Scanner {
             $this->prod_check_environment_badge(),
             $this->prod_check_ssl(),
             $this->prod_check_wp_debug(),
+            $this->prod_check_wp_debug_display(),
             $this->prod_check_caching(),
+            $this->prod_check_file_editing(),
+            $this->prod_check_php_version(),
+            $this->prod_check_db_prefix(),
+            $this->prod_check_admin_username(),
+            $this->prod_check_permalink_structure(),
+            $this->prod_check_site_icon(),
+            $this->prod_check_pending_updates(),
             $this->prod_check_cgdevtools_active(),
         ];
     }
@@ -360,6 +368,158 @@ class CGDevTools_Scanner {
         ];
     }
 
+    private function prod_check_wp_debug_display(): array {
+        $display_on = defined('WP_DEBUG_DISPLAY') ? WP_DEBUG_DISPLAY : true;
+
+        return [
+            'id'          => 'prod_wp_debug_display',
+            'label'       => 'WP_DEBUG_DISPLAY',
+            'description' => $display_on
+                ? 'WP_DEBUG_DISPLAY is enabled. PHP errors may be shown to visitors.'
+                : 'WP_DEBUG_DISPLAY is disabled.',
+            'status'      => $display_on ? 'fail' : 'pass',
+            'fixable'     => false,
+            'category'    => 'configuration',
+        ];
+    }
+
+    private function prod_check_file_editing(): array {
+        $disabled = defined('DISALLOW_FILE_EDIT') && DISALLOW_FILE_EDIT;
+
+        return [
+            'id'          => 'prod_file_editing',
+            'label'       => 'File Editing Disabled',
+            'description' => $disabled
+                ? 'DISALLOW_FILE_EDIT is enabled. Theme/plugin editor is disabled.'
+                : 'DISALLOW_FILE_EDIT is not set. Attackers with admin access could edit files directly.',
+            'status'      => $disabled ? 'pass' : 'fail',
+            'fixable'     => false,
+            'category'    => 'security',
+        ];
+    }
+
+    private function prod_check_php_version(): array {
+        $version = PHP_VERSION;
+        $is_modern = version_compare($version, '8.1', '>=');
+
+        return [
+            'id'          => 'prod_php_version',
+            'label'       => 'PHP Version',
+            'description' => $is_modern
+                ? "PHP {$version} — meets the recommended minimum."
+                : "PHP {$version} detected. PHP 8.1+ is required for security and performance.",
+            'status'      => $is_modern ? 'pass' : 'fail',
+            'fixable'     => false,
+            'category'    => 'configuration',
+        ];
+    }
+
+    private function prod_check_db_prefix(): array {
+        global $wpdb;
+        $is_default = $wpdb->prefix === 'wp_';
+
+        return [
+            'id'          => 'prod_db_prefix',
+            'label'       => 'Database Table Prefix',
+            'description' => $is_default
+                ? 'Using default "wp_" prefix. A custom prefix adds a layer of security against SQL injection.'
+                : "Using custom prefix \"{$wpdb->prefix}\".",
+            'status'      => $is_default ? 'warning' : 'pass',
+            'fixable'     => false,
+            'category'    => 'security',
+        ];
+    }
+
+    private function prod_check_admin_username(): array {
+        $admin_user = get_user_by('login', 'admin');
+
+        return [
+            'id'          => 'prod_admin_username',
+            'label'       => 'Default Admin Username',
+            'description' => $admin_user
+                ? 'A user with login "admin" exists. This is the first username attackers try.'
+                : 'No user with login "admin" found.',
+            'status'      => $admin_user ? 'fail' : 'pass',
+            'fixable'     => false,
+            'link'        => $admin_user ? admin_url('users.php') : '',
+            'link_label'  => 'Users',
+            'category'    => 'security',
+        ];
+    }
+
+    private function prod_check_permalink_structure(): array {
+        $structure = get_option('permalink_structure');
+        $is_plain = empty($structure);
+
+        return [
+            'id'          => 'prod_permalink_structure',
+            'label'       => 'Permalink Structure',
+            'description' => $is_plain
+                ? 'Using "Plain" permalinks (?p=123). This is bad for SEO — use a pretty permalink structure.'
+                : "Permalink structure: {$structure}",
+            'status'      => $is_plain ? 'fail' : 'pass',
+            'fixable'     => false,
+            'link'        => $is_plain ? admin_url('options-permalink.php') : '',
+            'link_label'  => 'Permalinks',
+            'category'    => 'configuration',
+        ];
+    }
+
+    private function prod_check_site_icon(): array {
+        $site_icon = get_option('site_icon');
+
+        return [
+            'id'          => 'prod_site_icon',
+            'label'       => 'Site Icon / Favicon',
+            'description' => $site_icon
+                ? 'Site icon is set.'
+                : 'No site icon (favicon) set. A missing favicon looks unprofessional.',
+            'status'      => $site_icon ? 'pass' : 'warning',
+            'fixable'     => false,
+            'link'        => !$site_icon ? admin_url('customize.php?autofocus[section]=title_tagline') : '',
+            'link_label'  => 'Customizer',
+            'category'    => 'configuration',
+        ];
+    }
+
+    private function prod_check_pending_updates(): array {
+        $update_plugins = get_site_transient('update_plugins');
+        $update_themes = get_site_transient('update_themes');
+        $update_core = get_site_transient('update_core');
+
+        $plugin_updates = !empty($update_plugins->response) ? count($update_plugins->response) : 0;
+        $theme_updates = !empty($update_themes->response) ? count($update_themes->response) : 0;
+        $core_update = false;
+        if (!empty($update_core->updates)) {
+            foreach ($update_core->updates as $update) {
+                if ($update->response === 'upgrade') {
+                    $core_update = true;
+                    break;
+                }
+            }
+        }
+
+        $parts = [];
+        if ($core_update) $parts[] = 'WordPress core';
+        if ($plugin_updates > 0) $parts[] = "{$plugin_updates} plugin(s)";
+        if ($theme_updates > 0) $parts[] = "{$theme_updates} theme(s)";
+
+        $has_updates = !empty($parts);
+
+        return [
+            'id'          => 'prod_pending_updates',
+            'label'       => 'Pending Updates',
+            'description' => $has_updates
+                ? 'Updates available for: ' . implode(', ', $parts) . '. Update before going live.'
+                : 'WordPress core, plugins, and themes are up to date.',
+            'status'      => $has_updates ? ($core_update ? 'fail' : 'warning') : 'pass',
+            'fixable'     => false,
+            'link'        => $has_updates ? admin_url('update-core.php') : '',
+            'link_label'  => 'Updates',
+            'category'    => 'security',
+        ];
+    }
+
     private function prod_check_cgdevtools_active(): array {
         return [
             'id'          => 'prod_cgdevtools_active',
@@ -461,6 +621,11 @@ class CGDevTools_Scanner {
             $this->check_password_protection(),
             $this->check_email_interception(),
             $this->check_environment_badge(),
+            $this->check_file_editing(),
+            $this->check_php_version(),
+            $this->check_payment_gateways(),
+            $this->check_wp_cron_events(),
+            $this->check_inactive_plugins(),
         ];
     }
 
@@ -815,6 +980,129 @@ class CGDevTools_Scanner {
             'link'        => !$both_on ? admin_url('admin.php?page=cgdevtools-settings#environment') : '',
             'link_label'  => 'Settings',
             'category'    => 'configuration',
+        ];
+    }
+
+    private function check_file_editing(): array {
+        $disabled = defined('DISALLOW_FILE_EDIT') && DISALLOW_FILE_EDIT;
+
+        return [
+            'id'          => 'file_editing',
+            'label'       => 'File Editing Disabled',
+            'description' => $disabled
+                ? 'DISALLOW_FILE_EDIT is enabled. Theme/plugin editor is disabled.'
+                : 'DISALLOW_FILE_EDIT is not set. The theme/plugin editor is accessible, which is a security risk.',
+            'status'      => $disabled ? 'pass' : 'warning',
+            'fixable'     => false,
+            'category'    => 'security',
+        ];
+    }
+
+    private function check_php_version(): array {
+        $version = PHP_VERSION;
+        $is_modern = version_compare($version, '8.1', '>=');
+
+        return [
+            'id'          => 'php_version',
+            'label'       => 'PHP Version',
+            'description' => $is_modern
+                ? "PHP {$version} detected."
+                : "PHP {$version} detected. PHP 8.1+ is recommended.",
+            'status'      => $is_modern ? 'pass' : 'warning',
+            'fixable'     => false,
+            'category'    => 'configuration',
+        ];
+    }
+
+    private function check_payment_gateways(): array {
+        $live_gateways = [];
+
+        // WooCommerce
+        if (class_exists('WooCommerce')) {
+            // Stripe
+            $stripe_mode = get_option('woocommerce_stripe_settings', []);
+            if (!empty($stripe_mode['testmode']) && $stripe_mode['testmode'] === 'no') {
+                $live_gateways[] = 'Stripe';
+            }
+
+            // PayPal
+            $paypal_settings = get_option('woocommerce_ppcp-gateway_settings', []);
+            if (empty($paypal_settings)) {
+                $paypal_settings = get_option('woocommerce_paypal_settings', []);
+            }
+            if (!empty($paypal_settings['testmode']) && $paypal_settings['testmode'] === 'no') {
+                $live_gateways[] = 'PayPal';
+            }
+        }
+
+        return [
+            'id'          => 'payment_gateways',
+            'label'       => 'Payment Gateway Mode',
+            'description' => !empty($live_gateways)
+                ? 'Live payment gateway detected: ' . implode(', ', $live_gateways) . '. Switch to test/sandbox mode on staging!'
+                : (class_exists('WooCommerce')
+                    ? 'Payment gateways are in test mode or not configured.'
+                    : 'WooCommerce not detected. Skipped.'),
+            'status'      => !empty($live_gateways) ? 'fail' : 'pass',
+            'fixable'     => false,
+            'link'        => !empty($live_gateways) ? admin_url('admin.php?page=wc-settings&tab=checkout') : '',
+            'link_label'  => 'WooCommerce Payments',
+            'category'    => 'security',
+        ];
+    }
+
+    private function check_wp_cron_events(): array {
+        $risky_hooks = [
+            'woocommerce_scheduled_sales',
+            'woocommerce_cancel_unpaid_orders',
+            'mailpoet_cron_trigger',
+            'wysija_cron',
+            'newsletter_cron',
+            'action_scheduler_run_queue',
+        ];
+
+        $found = [];
+        $crons = _get_cron_array();
+        if (is_array($crons)) {
+            foreach ($crons as $timestamp => $events) {
+                foreach ($events as $hook => $event_data) {
+                    if (in_array($hook, $risky_hooks, true)) {
+                        $found[] = $hook;
+                    }
+                }
+            }
+        }
+
+        $found = array_unique($found);
+
+        return [
+            'id'          => 'wp_cron_events',
+            'label'       => 'Scheduled Cron Events',
+            'description' => !empty($found)
+                ? 'Potentially risky cron events active: ' . implode(', ', $found) . '. These may trigger real actions on staging.'
+                : 'No known risky cron events detected.',
+            'status'      => !empty($found) ? 'warning' : 'pass',
+            'fixable'     => false,
+            'category'    => 'configuration',
+        ];
+    }
+
+    private function check_inactive_plugins(): array {
+        $all_plugins = get_plugins();
+        $active_plugins = get_option('active_plugins', []);
+        $inactive_count = count($all_plugins) - count($active_plugins);
+
+        return [
+            'id'          => 'inactive_plugins',
+            'label'       => 'Inactive Plugins',
+            'description' => $inactive_count > 0
+                ? "{$inactive_count} inactive plugin(s) found. Inactive plugins are a security risk — remove if not needed."
+                : 'No inactive plugins detected.',
+            'status'      => $inactive_count > 0 ? 'warning' : 'pass',
+            'fixable'     => false,
+            'link'        => $inactive_count > 0 ? admin_url('plugins.php?plugin_status=inactive') : '',
+            'link_label'  => 'Inactive Plugins',
+            'category'    => 'security',
         ];
     }
 

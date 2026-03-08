@@ -18,6 +18,47 @@
         }, 3000);
     }
 
+    // Custom confirm modal (replaces native confirm())
+    function showConfirm(options) {
+        var title = options.title || 'Are you sure?';
+        var message = options.message || '';
+        var confirmText = options.confirmText || 'Confirm';
+        var cancelText = options.cancelText || 'Cancel';
+        var type = options.type || 'warning'; // warning, danger
+
+        var btnClass = type === 'danger' ? 'cgdevtools-confirm-btn-danger' : 'cgdevtools-confirm-btn-primary';
+
+        var html = '<div id="cgdevtools-confirm" class="cgdevtools-modal">'
+            + '<div class="cgdevtools-modal-overlay cgdevtools-confirm-overlay"></div>'
+            + '<div class="cgdevtools-confirm-dialog">'
+            + '<div class="cgdevtools-confirm-icon cgdevtools-confirm-icon-' + type + '">'
+            + (type === 'danger'
+                ? '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>'
+                : '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>')
+            + '</div>'
+            + '<h3 class="cgdevtools-confirm-title">' + title + '</h3>'
+            + (message ? '<p class="cgdevtools-confirm-message">' + message + '</p>' : '')
+            + '<div class="cgdevtools-confirm-actions">'
+            + '<button class="cgdevtools-confirm-btn cgdevtools-confirm-btn-cancel">' + cancelText + '</button>'
+            + '<button class="cgdevtools-confirm-btn ' + btnClass + '">' + confirmText + '</button>'
+            + '</div>'
+            + '</div>'
+            + '</div>';
+
+        var $modal = $(html).appendTo('body');
+
+        return new Promise(function (resolve) {
+            $modal.find('.cgdevtools-confirm-btn-cancel, .cgdevtools-confirm-overlay').on('click', function () {
+                $modal.fadeOut(150, function () { $modal.remove(); });
+                resolve(false);
+            });
+            $modal.find('.' + btnClass).on('click', function () {
+                $modal.fadeOut(150, function () { $modal.remove(); });
+                resolve(true);
+            });
+        });
+    }
+
     // Render scan results into the dashboard
     function renderResults(results) {
         var pass = 0, fail = 0, warn = 0;
@@ -134,8 +175,14 @@
     });
 
     // Fix All
-    $(document).on('click', '#cgdevtools-fix-all', function () {
-        if (!confirm(cgdevtools.strings.confirm_fix)) return;
+    $(document).on('click', '#cgdevtools-fix-all', async function () {
+        var confirmed = await showConfirm({
+            type: 'warning',
+            title: 'Fix All Staging Issues',
+            message: cgdevtools.strings.confirm_fix,
+            confirmText: 'Fix All',
+        });
+        if (!confirmed) return;
 
         var $btn = $(this);
         $btn.prop('disabled', true).text(cgdevtools.strings.fixing);
@@ -262,8 +309,14 @@
     });
 
     // Delete all emails
-    $(document).on('click', '#cgdevtools-delete-emails', function () {
-        if (!confirm('Delete all intercepted emails? This cannot be undone.')) return;
+    $(document).on('click', '#cgdevtools-delete-emails', async function () {
+        var confirmed = await showConfirm({
+            type: 'danger',
+            title: 'Delete All Emails',
+            message: 'Delete all intercepted emails? This cannot be undone.',
+            confirmText: 'Delete All',
+        });
+        if (!confirmed) return;
 
         var $btn = $(this);
         $btn.prop('disabled', true);
@@ -367,8 +420,14 @@
     });
 
     // Production Fix All
-    $(document).on('click', '#cgdevtools-production-fix-all', function () {
-        if (!confirm('Remove all staging restrictions and prepare for production?')) return;
+    $(document).on('click', '#cgdevtools-production-fix-all', async function () {
+        var confirmed = await showConfirm({
+            type: 'warning',
+            title: 'Prepare for Production',
+            message: 'Remove all staging restrictions and prepare for production?',
+            confirmText: 'Proceed',
+        });
+        if (!confirmed) return;
 
         var $btn = $(this);
         $btn.prop('disabled', true).text(cgdevtools.strings.fixing);
