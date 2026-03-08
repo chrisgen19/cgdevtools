@@ -378,7 +378,7 @@ class CGDevTools_Scanner {
                 ? 'WP_DEBUG_DISPLAY is enabled. PHP errors may be shown to visitors.'
                 : 'WP_DEBUG_DISPLAY is disabled.',
             'status'      => $display_on ? 'fail' : 'pass',
-            'fixable'     => false,
+            'fixable'     => $display_on,
             'category'    => 'configuration',
         ];
     }
@@ -393,7 +393,7 @@ class CGDevTools_Scanner {
                 ? 'DISALLOW_FILE_EDIT is enabled. Theme/plugin editor is disabled.'
                 : 'DISALLOW_FILE_EDIT is not set. Attackers with admin access could edit files directly.',
             'status'      => $disabled ? 'pass' : 'fail',
-            'fixable'     => false,
+            'fixable'     => !$disabled,
             'category'    => 'security',
         ];
     }
@@ -547,6 +547,8 @@ class CGDevTools_Scanner {
             'prod_password_protection'      => $this->prod_fix_password_protection(),
             'prod_email_interception'       => $this->prod_fix_email_interception(),
             'prod_environment_badge'        => $this->prod_fix_environment_badge(),
+            'prod_file_editing'             => $this->fix_file_editing(),
+            'prod_wp_debug_display'         => $this->fix_wp_debug_display(),
             default                         => ['success' => false, 'message' => 'No auto-fix available for this check.'],
         };
     }
@@ -993,7 +995,7 @@ class CGDevTools_Scanner {
                 ? 'DISALLOW_FILE_EDIT is enabled. Theme/plugin editor is disabled.'
                 : 'DISALLOW_FILE_EDIT is not set. The theme/plugin editor is accessible, which is a security risk.',
             'status'      => $disabled ? 'pass' : 'warning',
-            'fixable'     => false,
+            'fixable'     => !$disabled,
             'category'    => 'security',
         ];
     }
@@ -1119,6 +1121,7 @@ class CGDevTools_Scanner {
             'password_protection'      => $this->fix_password_protection(),
             'email_interception'       => $this->fix_email_interception(),
             'environment_badge'        => $this->fix_environment_badge(),
+            'file_editing'             => $this->fix_file_editing(),
             default                    => ['success' => false, 'message' => 'No auto-fix available for this check.'],
         };
     }
@@ -1169,5 +1172,70 @@ class CGDevTools_Scanner {
         $settings['banner_enabled'] = true;
         update_option('cgdevtools_environment', $settings);
         return ['success' => true, 'message' => 'Environment badge and admin banner have been enabled.'];
+    }
+
+    private function fix_file_editing(): array {
+        $result = $this->set_wp_config_constant('DISALLOW_FILE_EDIT', 'true');
+        if (!$result) {
+            return ['success' => false, 'message' => 'Could not update wp-config.php. Please add define(\'DISALLOW_FILE_EDIT\', true); manually.'];
+        }
+        return ['success' => true, 'message' => 'DISALLOW_FILE_EDIT has been set to true in wp-config.php. Reload to apply.'];
+    }
+
+    private function fix_wp_debug_display(): array {
+        $result = $this->set_wp_config_constant('WP_DEBUG_DISPLAY', 'false');
+        if (!$result) {
+            return ['success' => false, 'message' => 'Could not update wp-config.php. Please add define(\'WP_DEBUG_DISPLAY\', false); manually.'];
+        }
+        return ['success' => true, 'message' => 'WP_DEBUG_DISPLAY has been set to false in wp-config.php. Reload to apply.'];
+    }
+
+    /**
+     * Set or update a constant in wp-config.php.
+     */
+    private function set_wp_config_constant(string $constant, string $value): bool {
+        $config_path = ABSPATH . 'wp-config.php';
+
+        if (!file_exists($config_path) || !is_writable($config_path)) {
+            return false;
+        }
+
+        $config = file_get_contents($config_path);
+        if ($config === false) {
+            return false;
+        }
+
+        // Check if the constant already exists
+        $pattern = "/define\s*\(\s*['\"]" . preg_quote($constant, '/') . "['\"]\s*,\s*[^)]+\)/";
+
+        if (preg_match($pattern, $config)) {
+            // Replace existing definition
+            $replacement = "define('{$constant}', {$value})";
+            $new_config = preg_replace($pattern, $replacement, $config);
+        } else {
+            // Insert before "That's all, stop editing!" or before the wp-settings.php require
+            $anchors = [
+                "/* That's all, stop editing!",
+                "/** That's all, stop editing!",
+                "require_once ABSPATH . 'wp-settings.php'",
+                "require_once(ABSPATH . 'wp-settings.php')",
+            ];
+
+            $inserted = false;
+            foreach ($anchors as $anchor) {
+                if (str_contains($config, $anchor)) {
+                    $line = "define('{$constant}', {$value}); // Added by CGDevTools\n";
+                    $new_config = str_replace($anchor, $line . $anchor, $config);
+                    $inserted = true;
+                    break;
+                }
+            }
+
+            if (!$inserted) {
+                return false;
+            }
+        }
+
+        return file_put_contents($config_path, $new_config) !== false;
     }
 }
